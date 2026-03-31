@@ -68,7 +68,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             (_routeBookingStats[booking.routeName] ?? 0) + 1;
       }
     } catch (e) {
-      debugPrint('Error loading analytics: $e');
     } finally {
       setState(() => _isLoading = false);
     }

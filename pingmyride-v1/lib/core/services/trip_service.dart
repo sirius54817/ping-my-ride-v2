@@ -33,7 +33,6 @@ class TripService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading trips: $e');
       _isLoading = false;
       notifyListeners();
     }
@@ -70,7 +69,6 @@ class TripService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Error adding trip: $e');
       return false;
     }
   }
@@ -86,7 +84,6 @@ class TripService extends ChangeNotifier {
       }
       return true;
     } catch (e) {
-      debugPrint('Error updating trip: $e');
       return false;
     }
   }
@@ -99,7 +96,6 @@ class TripService extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Error deleting trip: $e');
       return false;
     }
   }
@@ -220,7 +216,6 @@ class TripService extends ChangeNotifier {
       }
       return true;
     } catch (e) {
-      debugPrint('Error updating booked seats: $e');
       return false;
     }
   }

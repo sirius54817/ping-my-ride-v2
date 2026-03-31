@@ -37,7 +37,7 @@ class BusService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final docRef = await _firestore.collection('buses').add({
+      await _firestore.collection('buses').add({
         'busNumber': busNumber,
         'driverName': driverName,
         'driverPhone': driverPhone,
@@ -48,12 +48,9 @@ class BusService extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-
-      debugPrint('Bus added with ID: ${docRef.id}');
       await fetchBuses(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error adding bus: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -74,7 +71,6 @@ class BusService extends ChangeNotifier {
       await fetchBuses(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error updating bus: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -91,7 +87,6 @@ class BusService extends ChangeNotifier {
       await fetchBuses(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error deleting bus: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -113,7 +108,6 @@ class BusService extends ChangeNotifier {
           .map((doc) => Bus.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching buses: $e');
       _buses = [];
     } finally {
       _isLoading = false;
@@ -135,7 +129,7 @@ class BusService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final docRef = await _firestore.collection('routes').add({
+      await _firestore.collection('routes').add({
         'routeName': routeName,
         'pickupLocation': pickupLocation,
         'dropLocation': dropLocation,
@@ -147,12 +141,9 @@ class BusService extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-
-      debugPrint('Route added with ID: ${docRef.id}');
       await fetchRoutes(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error adding route: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -173,7 +164,6 @@ class BusService extends ChangeNotifier {
       await fetchRoutes(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error updating route: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -189,7 +179,6 @@ class BusService extends ChangeNotifier {
       // Check if any buses are using this route
       final busesUsingRoute = _buses.where((bus) => bus.routeId == routeId).toList();
       if (busesUsingRoute.isNotEmpty) {
-        debugPrint('Cannot delete route: ${busesUsingRoute.length} buses are using this route');
         return false;
       }
 
@@ -197,7 +186,6 @@ class BusService extends ChangeNotifier {
       await fetchRoutes(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error deleting route: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -219,7 +207,6 @@ class BusService extends ChangeNotifier {
           .map((doc) => BusRoute.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      debugPrint('Error fetching routes: $e');
       _routes = [];
     } finally {
       _isLoading = false;
@@ -256,12 +243,10 @@ class BusService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('User not authenticated');
         return false;
       }
 
       if (!bus.hasAvailableSeats) {
-        debugPrint('No available seats on bus ${bus.busNumber}');
         return false;
       }
 
@@ -294,7 +279,6 @@ class BusService extends ChangeNotifier {
               booking.selectedBookingDate!.day,
             );
             if (existingDate == normalizedDate) {
-              debugPrint('User already has a booking for this bus on ${normalizedDate.toString()} at $selectedTimeSlot');
               _isLoading = false;
               notifyListeners();
               return false;
@@ -327,9 +311,6 @@ class BusService extends ChangeNotifier {
         selectedPickupTime: selectedTimeSlot,
         selectedBookingDate: selectedBookingDate,
       );
-
-      debugPrint('Creating booking for user ${user.uid} on bus ${bus.busNumber}');
-
       // Use a transaction to ensure data consistency
       await _firestore.runTransaction((transaction) async {
         // Check bus capacity again within transaction
@@ -354,12 +335,7 @@ class BusService extends ChangeNotifier {
           'bookedSeats': currentBus.bookedSeats + 1,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        
-        debugPrint('Booking transaction completed successfully');
       });
-
-      debugPrint('Booking created successfully, refreshing data...');
-
       // Refresh data
       await Future.wait([
         fetchBuses(),
@@ -375,11 +351,8 @@ class BusService extends ChangeNotifier {
         time: selectedTimeSlot ?? 'scheduled time',
         busNumber: bus.busNumber,
       );
-      
-      debugPrint('Booking process completed');
       return true;
     } catch (e) {
-      debugPrint('Error booking bus: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -402,12 +375,10 @@ class BusService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('User not authenticated');
         return false;
       }
 
       if (!bus.hasAvailableSeats) {
-        debugPrint('No available seats on bus ${bus.busNumber}');
         return false;
       }
 
@@ -440,7 +411,6 @@ class BusService extends ChangeNotifier {
               booking.selectedBookingDate!.day,
             );
             if (existingDate == normalizedDate) {
-              debugPrint('User already has a booking for this bus on ${normalizedDate.toString()} at $selectedTimeSlot');
               return false;
             }
           }
@@ -484,9 +454,6 @@ class BusService extends ChangeNotifier {
         gender: gender,
         qrCode: qrCode,
       );
-
-      debugPrint('Creating booking with payment for user ${user.uid} on bus ${bus.busNumber}');
-
       // Use a transaction to ensure data consistency
       await _firestore.runTransaction((transaction) async {
         // Check bus capacity again within transaction
@@ -511,12 +478,7 @@ class BusService extends ChangeNotifier {
           'bookedSeats': currentBus.bookedSeats + 1,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        
-        debugPrint('Booking with payment transaction completed successfully');
       });
-
-      debugPrint('Booking with payment created successfully, refreshing data...');
-
       // Refresh data
       await Future.wait([
         fetchBuses(),
@@ -532,11 +494,8 @@ class BusService extends ChangeNotifier {
         time: selectedTimeSlot ?? 'scheduled time',
         busNumber: bus.busNumber,
       );
-      
-      debugPrint('Booking with payment process completed');
       return true;
     } catch (e) {
-      debugPrint('Error booking bus with payment: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -548,7 +507,6 @@ class BusService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null || user.uid != booking.userId) {
-        debugPrint('Unauthorized to cancel this booking');
         return false;
       }
 
@@ -589,7 +547,6 @@ class BusService extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      debugPrint('Error cancelling booking: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -601,14 +558,10 @@ class BusService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('No authenticated user found');
         _userBookings = [];
         notifyListeners();
         return;
       }
-
-      debugPrint('Fetching bookings for user: ${user.uid}');
-
       // Simple query without orderBy to avoid index requirement
       final querySnapshot = await _firestore
           .collection('bookings')
@@ -621,11 +574,8 @@ class BusService extends ChangeNotifier {
 
       // Sort in memory instead of using Firestore orderBy
       _userBookings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-      debugPrint('Found ${_userBookings.length} bookings for user');
       notifyListeners();
     } catch (e) {
-      debugPrint('Error fetching user bookings: $e');
       _userBookings = [];
       notifyListeners();
     }
@@ -662,7 +612,7 @@ class BusService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final docRef = await _firestore.collection('bus_timings').add({
+      await _firestore.collection('bus_timings').add({
         'busId': busId,
         'routeId': routeId,
         'timings': timings.map((t) => t.toMap()).toList(),
@@ -671,12 +621,9 @@ class BusService extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-
-      debugPrint('Bus timing added with ID: ${docRef.id}');
       await fetchBusTimings(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error adding bus timing: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -697,7 +644,6 @@ class BusService extends ChangeNotifier {
       await fetchBusTimings(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error updating bus timing: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -714,7 +660,6 @@ class BusService extends ChangeNotifier {
       await fetchBusTimings(); // Refresh the list
       return true;
     } catch (e) {
-      debugPrint('Error deleting bus timing: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -735,10 +680,7 @@ class BusService extends ChangeNotifier {
       _busTimings = querySnapshot.docs
           .map((doc) => BusTiming.fromMap(doc.data(), doc.id))
           .toList();
-      
-      debugPrint('Fetched ${_busTimings.length} bus timings');
     } catch (e) {
-      debugPrint('Error fetching bus timings: $e');
       _busTimings = [];
     } finally {
       _isLoading = false;

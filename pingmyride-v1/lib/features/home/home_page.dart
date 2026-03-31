@@ -9,10 +9,7 @@ import '../../core/models/booking.dart';
 import '../../core/services/bus_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/theme_service.dart';
-import '../../core/theme/app_theme.dart';
 import '../auth/login_page.dart';
-import '../payment/payment_page.dart';
-import '../bookings/seat_selection_page.dart';
 import '../admin/management_page.dart';
 import '../admin/bus_timing_page.dart';
 import '../admin/analytics_page.dart';
@@ -451,6 +448,8 @@ class _HomePageState extends State<HomePage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
+        cacheExtent: 600,
+        itemExtent: 236,
         itemCount: activeBuses.length,
         itemBuilder: (context, index) {
           final bus = activeBuses[index];
@@ -946,9 +945,10 @@ class _HomePageState extends State<HomePage> {
           }),
           _buildActionCard('Refresh Data', Icons.refresh, Colors.teal, () async {
             final busService = Provider.of<BusService>(context, listen: false);
+            final messenger = ScaffoldMessenger.of(context);
             await busService.initialize();
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              messenger.showSnackBar(
                 const SnackBar(
                   content: Text('Data refreshed successfully'),
                   backgroundColor: Colors.green,

@@ -40,7 +40,6 @@ class ThemeService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_themeKey, mode.toString());
     } catch (e) {
-      debugPrint('Error saving theme preference: $e');
     }
   }
 

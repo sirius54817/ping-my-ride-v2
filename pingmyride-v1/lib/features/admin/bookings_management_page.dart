@@ -66,7 +66,6 @@ class _BookingsManagementPageState extends State<BookingsManagementPage> {
 
       _applyFiltersAndSort();
     } catch (e) {
-      debugPrint('Error loading bookings: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

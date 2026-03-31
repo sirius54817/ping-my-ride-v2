@@ -376,7 +376,7 @@ class _BookingsPageState extends State<BookingsPage> {
       final success = await busService.cancelBooking(booking);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(this.context).showSnackBar(
           SnackBar(
             content: Text(
               success ? 'Booking cancelled successfully' : 'Failed to cancel booking',

@@ -129,7 +129,6 @@ class _SeatSelectionPageState extends State<SeatSelectionPage> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading seats: $e');
       setState(() => _isLoading = false);
     }
   }

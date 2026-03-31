@@ -39,10 +39,10 @@ class _BusTrackingMapPageState extends State<BusTrackingMapPage> {
     
     // Start tracking the bus
     await trackingService.startTrackingBus(widget.busId);
+    if (!mounted) return;
 
     // Load route polyline if routeId is provided
     if (widget.routeId != null) {
-      if (!context.mounted) return;
       final busService = Provider.of<BusService>(context, listen: false);
       final route = busService.getRouteById(widget.routeId!);
       
@@ -75,6 +75,7 @@ class _BusTrackingMapPageState extends State<BusTrackingMapPage> {
   }
 
   void _updateBusMarker() {
+    if (!mounted) return;
     final trackingService = Provider.of<TrackingService>(context, listen: false);
     final location = trackingService.getBusLocation(widget.busId);
     final data = trackingService.getBusData(widget.busId);

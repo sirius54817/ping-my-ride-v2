@@ -31,10 +31,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   Future<void> _checkAuthState() async {
     try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.restoreSession();
+
       // Check if admin is already logged in (hardcoded admin doesn't use Firebase)
       if (mounted) {
-        final authService = Provider.of<AuthService>(context, listen: false);
-        
         // If admin is already authenticated (from previous session)
         if (authService.currentUserType == UserType.admin && authService.isAuthenticated) {
           setState(() {
@@ -49,6 +50,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       
       if (user == null) {
         // No user logged in - show login page
+        if (!mounted) return;
         setState(() {
           _destinationWidget = const LoginPage();
           _isChecking = false;
@@ -65,6 +67,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (!doc.exists) {
         // User document doesn't exist - force re-login
         await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
         setState(() {
           _destinationWidget = const LoginPage();
           _isChecking = false;
@@ -73,8 +76,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }
 
       // Get user type from Firestore
-      final userData = doc.data()!;
-      final userTypeString = userData['userType'] as String;
+      final userData = doc.data();
+      final userTypeString = userData?['userType'] as String?;
       final userType = UserType.values.firstWhere(
         (type) => type.name == userTypeString,
         orElse: () => UserType.student,
@@ -91,13 +94,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }
 
       // Navigate to appropriate dashboard
+      if (!mounted) return;
       setState(() {
         _destinationWidget = MainNavigation(userType: userType);
         _isChecking = false;
       });
     } catch (e) {
-      debugPrint('AuthWrapper error: $e');
       // On error, show login page
+      if (!mounted) return;
       setState(() {
         _destinationWidget = const LoginPage();
         _isChecking = false;
@@ -113,17 +117,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
       
       if (permissionGranted) {
         await fcmService.storeFCMToken(userId, userType.name);
-        debugPrint('FCM: Token stored for auto-logged in user $userId');
       }
       
       // Start notification listener for students
       if (userType == UserType.student) {
         final notificationListener = NotificationListenerService();
         await notificationListener.startListening(userId);
-        debugPrint('NotificationListener: Started for student $userId');
       }
     } catch (e) {
-      debugPrint('FCM: Error initializing for auto-login: $e');
     }
   }
 

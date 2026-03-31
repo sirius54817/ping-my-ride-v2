@@ -44,11 +44,23 @@ class AppTheme {
   static const _darkInput = Color(0xFF1E293B);
   static const _darkRing = Color(0xFFD4D4D8);
 
+  static const PageTransitionsTheme _pageTransitionsTheme =
+      PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+      TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+    },
+  );
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: _lightBackground,
+      pageTransitionsTheme: _pageTransitionsTheme,
       
       // Color scheme
       colorScheme: const ColorScheme.light(
@@ -518,6 +530,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: _darkBackground,
+      pageTransitionsTheme: _pageTransitionsTheme,
       
       // Color scheme
       colorScheme: const ColorScheme.dark(

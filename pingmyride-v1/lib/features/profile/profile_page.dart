@@ -31,14 +31,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadUserProfile() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    
-    // Debug: Log current user type
-    debugPrint('ProfilePage: Loading profile for user type: ${authService.currentUserType?.name}');
-    
     // Check if user is admin BEFORE attempting to fetch profile
     if (authService.currentUserType == UserType.admin) {
       // Admin user - set hardcoded profile data directly
-      debugPrint('ProfilePage: Admin user detected, loading hardcoded profile');
       setState(() {
         _userProfile = {
           'name': 'TANNEERU CHANDRA SIDHARDHA',
@@ -52,7 +47,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
     
     // For students and drivers - fetch from Firebase
-    debugPrint('ProfilePage: Fetching profile from Firebase for ${authService.currentUserType?.name}');
     final profile = await authService.getCurrentUserProfile();
     setState(() {
       _userProfile = profile;
@@ -814,7 +808,7 @@ $result
           ),
         ],
       ),
-    );
+    ).whenComplete(controller.dispose);
   }
 
   Future<void> _updateUserProfile(BuildContext context, String field, String value) async {

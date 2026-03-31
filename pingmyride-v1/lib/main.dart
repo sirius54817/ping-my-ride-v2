@@ -48,11 +48,8 @@ void _setupFCMNotificationTapHandlers() {
   // Handle notification tap when app is in background
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     try {
-      debugPrint('FCM: Notification opened app from background');
-      debugPrint('FCM: Message data: ${message.data}');
       // App opens normally - no forced navigation
     } catch (e) {
-      debugPrint('FCM: Error handling notification tap: $e');
     }
   });
 
@@ -60,12 +57,9 @@ void _setupFCMNotificationTapHandlers() {
   FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
     try {
       if (message != null) {
-        debugPrint('FCM: Notification opened app from terminated state');
-        debugPrint('FCM: Message data: ${message.data}');
         // App opens normally - no forced navigation
       }
     } catch (e) {
-      debugPrint('FCM: Error handling initial message: $e');
     }
   });
 }

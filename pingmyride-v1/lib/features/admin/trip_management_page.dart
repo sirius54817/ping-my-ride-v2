@@ -285,7 +285,7 @@ class _AddTripDialogState extends State<AddTripDialog> {
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.directions_bus),
                       ),
-                      value: _selectedBusId,
+                      initialValue: _selectedBusId,
                       items: busService.buses.map((bus) {
                         final route = busService.getRouteById(bus.routeId);
                         return DropdownMenuItem(

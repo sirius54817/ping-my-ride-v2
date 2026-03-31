@@ -1,14 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_type.dart';
 import 'fcm_service.dart';
 import 'notification_listener_service.dart';
 
 class AuthService extends ChangeNotifier {
+  static const String _adminSessionKey = 'admin_session_active';
+  static const String _adminEmailKey = 'admin_session_email';
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FCMService _fcmService = FCMService();
+  final NotificationListenerService _notificationListenerService = NotificationListenerService();
   
   UserType? _currentUserType;
   String? _currentUserEmail;
@@ -33,11 +38,37 @@ class AuthService extends ChangeNotifier {
     });
   }
 
+  Future<void> restoreSession() async {
+    // Firebase users are restored automatically by FirebaseAuth.
+    if (_auth.currentUser != null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isAdminSession = prefs.getBool(_adminSessionKey) ?? false;
+      final adminEmail = prefs.getString(_adminEmailKey);
+
+      if (isAdminSession && adminEmail != null && adminEmail.isNotEmpty) {
+        _currentUserType = UserType.admin;
+        _currentUserEmail = adminEmail;
+        _isAuthenticated = true;
+        notifyListeners();
+      }
+    } catch (e) {
+    }
+  }
+
   Future<void> _loadUserData(User user) async {
     try {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       if (doc.exists) {
-        final data = doc.data()!;
+        final data = doc.data();
+        if (data == null) {
+          _currentUserType = null;
+          _currentUserEmail = null;
+          _isAuthenticated = false;
+          notifyListeners();
+          return;
+        }
         _currentUserType = UserType.values.firstWhere(
           (type) => type.name == data['userType'],
           orElse: () => UserType.student,
@@ -47,7 +78,29 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error loading user data: $e');
+    }
+  }
+
+  String _mapAuthException(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled. Contact support.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Invalid email or password.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Check your connection and try again.';
+      case 'email-already-in-use':
+        return 'This email is already registered.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      default:
+        return 'Authentication failed. Please try again.';
     }
   }
 
@@ -117,12 +170,23 @@ class AuthService extends ChangeNotifier {
         'error': 'unknown',
         'message': 'Login failed',
       };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'error': e.code,
+        'message': _mapAuthException(e),
+      };
+    } on FirebaseException catch (e) {
+      return {
+        'success': false,
+        'error': e.code,
+        'message': 'Service temporarily unavailable. Please try again.',
+      };
     } catch (e) {
-      debugPrint('Login error: $e');
       return {
         'success': false,
         'error': 'exception',
-        'message': e.toString(),
+        'message': 'Login failed. Please try again.',
       };
     }
   }
@@ -189,11 +253,20 @@ class AuthService extends ChangeNotifier {
         'success': false,
         'message': 'Failed to create account',
       };
-    } catch (e) {
-      debugPrint('Sign up error: $e');
+    } on FirebaseAuthException catch (e) {
       return {
         'success': false,
-        'message': e.toString(),
+        'message': _mapAuthException(e),
+      };
+    } on FirebaseException {
+      return {
+        'success': false,
+        'message': 'Service temporarily unavailable. Please try again.',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Registration failed. Please try again.',
       };
     }
   }
@@ -209,12 +282,15 @@ class AuthService extends ChangeNotifier {
       }
       
       await _auth.signOut();
+      await _notificationListenerService.stopListening();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_adminSessionKey);
+      await prefs.remove(_adminEmailKey);
       _currentUserType = null;
       _currentUserEmail = null;
       _isAuthenticated = false;
       notifyListeners();
     } catch (e) {
-      debugPrint('Logout error: $e');
     }
   }
 
@@ -227,7 +303,17 @@ class AuthService extends ChangeNotifier {
     _currentUserType = UserType.admin;
     _currentUserEmail = email;
     _isAuthenticated = true;
+    _persistAdminSession(email);
     notifyListeners();
+  }
+
+  Future<void> _persistAdminSession(String email) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_adminSessionKey, true);
+      await prefs.setString(_adminEmailKey, email);
+    } catch (e) {
+    }
   }
 
   // Get current user profile data
@@ -252,7 +338,6 @@ class AuthService extends ChangeNotifier {
             .get();
         return doc.data();
       } catch (e) {
-        debugPrint('Error fetching user profile: $e');
       }
     }
     return null;
@@ -267,19 +352,14 @@ class AuthService extends ChangeNotifier {
       if (permissionGranted) {
         // Store FCM token in Firestore
         await _fcmService.storeFCMToken(userId, userType.name);
-        debugPrint('FCM: Token stored for user $userId');
       } else {
-        debugPrint('FCM: Permission not granted by user');
       }
       
       // Start notification listener for students
       if (userType == UserType.student) {
-        final notificationListener = NotificationListenerService();
-        await notificationListener.startListening(userId);
-        debugPrint('NotificationListener: Started for student $userId');
+        await _notificationListenerService.startListening(userId);
       }
     } catch (e) {
-      debugPrint('FCM: Error initializing for user: $e');
     }
   }
 }

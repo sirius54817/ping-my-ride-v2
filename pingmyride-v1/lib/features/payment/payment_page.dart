@@ -55,11 +55,13 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    if (!mounted) return;
     setState(() {
       _isProcessing = true;
     });
 
     final busService = Provider.of<BusService>(context, listen: false);
+    final messenger = ScaffoldMessenger.maybeOf(context);
     
     try {
       // Create booking with payment details
@@ -78,7 +80,7 @@ class _PaymentPageState extends State<PaymentPage> {
       if (mounted) {
         if (success) {
           Navigator.of(context).pop(true); // Return to home page with success
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger?.showSnackBar(
             SnackBar(
               content: Text('Payment successful! Booking confirmed for ${widget.bus.busNumber}'),
               backgroundColor: Colors.green,
@@ -87,7 +89,7 @@ class _PaymentPageState extends State<PaymentPage> {
           );
         } else {
           Navigator.of(context).pop(false);
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger?.showSnackBar(
             const SnackBar(
               content: Text('Booking failed. You may already have a booking for this bus on the selected date and time slot. Your payment will be refunded.'),
               backgroundColor: Colors.orange,
@@ -99,7 +101,7 @@ class _PaymentPageState extends State<PaymentPage> {
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop(false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
@@ -108,9 +110,11 @@ class _PaymentPageState extends State<PaymentPage> {
         );
       }
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -184,10 +188,8 @@ class _PaymentPageState extends State<PaymentPage> {
     };
 
     try {
-      debugPrint('Opening Razorpay with options: $options');
       _razorpay.open(options);
     } catch (e) {
-      debugPrint('Error opening Razorpay: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

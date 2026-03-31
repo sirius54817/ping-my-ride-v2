@@ -52,7 +52,6 @@ class _DriversPageState extends State<DriversPage> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading drivers: $e');
       setState(() => _isLoading = false);
     }
   }

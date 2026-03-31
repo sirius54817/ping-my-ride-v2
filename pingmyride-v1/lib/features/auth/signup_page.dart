@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
 import '../../core/models/user_type.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/auth_service.dart';
@@ -29,8 +30,7 @@ class _SignUpPageState extends State<SignUpPage>
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  
-  final _authService = AuthService();
+
   bool _isLoading = false;
 
   @override
@@ -60,7 +60,8 @@ class _SignUpPageState extends State<SignUpPage>
     });
 
     try {
-      final result = await _authService.signUp(
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final result = await authService.signUp(
         _nameController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text,

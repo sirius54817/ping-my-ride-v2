@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
 
 /// Service to listen for trip start notifications from Firestore
@@ -14,7 +13,6 @@ class NotificationListenerService {
   /// Start listening for notifications for the logged-in user
   Future<void> startListening(String userId) async {
     if (_currentUserId == userId && _notificationStream != null) {
-      debugPrint('NotificationListener: Already listening for user $userId');
       return;
     }
     
@@ -22,8 +20,6 @@ class NotificationListenerService {
     await stopListening();
     
     _currentUserId = userId;
-    debugPrint('NotificationListener: Starting to listen for user $userId');
-    
     // Listen to notifications created in the last 5 minutes that haven't been read
     final fiveMinutesAgo = DateTime.now().subtract(const Duration(minutes: 5));
     
@@ -44,7 +40,6 @@ class NotificationListenerService {
         }
       }
     }, onError: (error) {
-      debugPrint('NotificationListener: Error listening to notifications: $error');
     });
   }
   
@@ -56,25 +51,19 @@ class NotificationListenerService {
       final body = data['body'] as String?;
       
       if (type == null || title == null || body == null) {
-        debugPrint('NotificationListener: Invalid notification data');
         return;
       }
-      
-      debugPrint('NotificationListener: Received $type notification');
-      
       // Show local notification based on type
       switch (type) {
         case 'trip_started':
           await _showTripStartedNotification(title, body, data['data']);
           break;
         default:
-          debugPrint('NotificationListener: Unknown notification type: $type');
       }
       
       // Mark notification as read
       await _markAsRead(notificationId);
     } catch (e) {
-      debugPrint('NotificationListener: Error handling notification: $e');
     }
   }
   
@@ -90,10 +79,7 @@ class NotificationListenerService {
         title: title,
         body: body,
       );
-      
-      debugPrint('NotificationListener: Trip start notification shown');
     } catch (e) {
-      debugPrint('NotificationListener: Error showing trip notification: $e');
     }
   }
   
@@ -104,10 +90,7 @@ class NotificationListenerService {
           .collection('notifications')
           .doc(notificationId)
           .update({'read': true});
-      
-      debugPrint('NotificationListener: Marked notification $notificationId as read');
     } catch (e) {
-      debugPrint('NotificationListener: Error marking notification as read: $e');
     }
   }
   
@@ -116,7 +99,6 @@ class NotificationListenerService {
     await _notificationStream?.cancel();
     _notificationStream = null;
     _currentUserId = null;
-    debugPrint('NotificationListener: Stopped listening');
   }
   
   /// Check if currently listening

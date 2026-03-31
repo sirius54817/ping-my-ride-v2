@@ -33,7 +33,6 @@ class TicketService extends ChangeNotifier {
 
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('TicketService: User not authenticated');
         return null;
       }
 
@@ -60,13 +59,9 @@ class TicketService extends ChangeNotifier {
 
       // Save to Firestore
       final docRef = await _firestore.collection('tickets').add(ticket.toMap());
-
-      debugPrint('TicketService: Ticket created with ID ${docRef.id}');
-
       await fetchUserTickets();
       return ticket.copyWith(id: docRef.id);
     } catch (e) {
-      debugPrint('TicketService: Error creating ticket - $e');
       return null;
     } finally {
       _isLoading = false;
@@ -79,7 +74,6 @@ class TicketService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('TicketService: User not authenticated');
         _userTickets = [];
         notifyListeners();
         return;
@@ -99,10 +93,7 @@ class TicketService extends ChangeNotifier {
 
       // Sort by travel date (most recent first)
       _userTickets.sort((a, b) => b.travelDate.compareTo(a.travelDate));
-
-      debugPrint('TicketService: Fetched ${_userTickets.length} tickets');
     } catch (e) {
-      debugPrint('TicketService: Error fetching tickets - $e');
       _userTickets = [];
     } finally {
       _isLoading = false;
@@ -180,8 +171,6 @@ class TicketService extends ChangeNotifier {
           'message': 'Bus not found',
         };
       }
-
-      // final busData = busDoc.data()!;
       // You can add driver email verification here if needed
       
       // Update ticket status
@@ -191,9 +180,6 @@ class TicketService extends ChangeNotifier {
         'scannedBy': user.uid,
         'rideStartedAt': FieldValue.serverTimestamp(),
       });
-
-      debugPrint('TicketService: Ticket ${ticketDoc.id} successfully scanned');
-
       return {
         'success': true,
         'message': 'Ride started successfully',
@@ -205,7 +191,6 @@ class TicketService extends ChangeNotifier {
         ),
       };
     } catch (e) {
-      debugPrint('TicketService: Error scanning QR code - $e');
       return {
         'success': false,
         'message': 'Error validating ticket: $e',
@@ -222,10 +207,8 @@ class TicketService extends ChangeNotifier {
       });
 
       await fetchUserTickets();
-      debugPrint('TicketService: Ride completed for ticket $ticketId');
       return true;
     } catch (e) {
-      debugPrint('TicketService: Error completing ride - $e');
       return false;
     }
   }
@@ -239,7 +222,6 @@ class TicketService extends ChangeNotifier {
       }
       return null;
     } catch (e) {
-      debugPrint('TicketService: Error fetching ticket - $e');
       return null;
     }
   }

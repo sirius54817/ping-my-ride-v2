@@ -24,7 +24,6 @@ class FCMService {
         final status = await Permission.notification.status;
         
         if (status.isGranted) {
-          debugPrint('FCM: Android notification permission already granted');
           return true;
         }
         
@@ -32,19 +31,15 @@ class FCMService {
           final result = await Permission.notification.request();
           
           if (result.isGranted) {
-            debugPrint('FCM: Android notification permission granted');
             return true;
           } else if (result.isDenied) {
-            debugPrint('FCM: Android notification permission denied - continuing without notifications');
             return false;
           } else if (result.isPermanentlyDenied) {
-            debugPrint('FCM: Android notification permission permanently denied - user needs to enable in settings');
             return false;
           }
         }
         
         if (status.isPermanentlyDenied) {
-          debugPrint('FCM: Android notification permission permanently denied - user needs to enable in settings');
           return false;
         }
       }
@@ -52,7 +47,6 @@ class FCMService {
       // For iOS, web, and other platforms, return true
       return true;
     } catch (e) {
-      debugPrint('FCM: Error requesting Android notification permission: $e');
       // Continue without blocking even if permission check fails
       return false;
     }
@@ -77,19 +71,15 @@ class FCMService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
-        debugPrint('FCM: User granted permission');
         await _retrieveToken();
       } else {
-        debugPrint('FCM: User declined or has not accepted permission - app will continue without notifications');
       }
 
       // Listen to token refresh
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
         _fcmToken = newToken;
-        debugPrint('FCM: Token refreshed: $newToken');
       });
     } catch (e) {
-      debugPrint('FCM: Error initializing: $e - app will continue without notifications');
     }
   }
 
@@ -97,10 +87,8 @@ class FCMService {
   Future<String?> _retrieveToken() async {
     try {
       _fcmToken = await _firebaseMessaging.getToken();
-      debugPrint('FCM: Token retrieved: $_fcmToken');
       return _fcmToken;
     } catch (e) {
-      debugPrint('FCM: Error retrieving token: $e');
       return null;
     }
   }
@@ -113,73 +101,34 @@ class FCMService {
       }
 
       if (_fcmToken != null) {
-        // Determine the collection based on user type
-        String collection;
-        switch (userType.toLowerCase()) {
-          case 'student':
-            collection = 'students';
-            break;
-          case 'driver':
-            collection = 'drivers';
-            break;
-          case 'admin':
-            collection = 'admins';
-            break;
-          default:
-            debugPrint('FCM: Unknown user type: $userType - skipping token storage');
-            return;
-        }
-
-        // Store token in user's document
+        // Store token in the canonical user document.
         await FirebaseFirestore.instance
-            .collection(collection)
+            .collection('users')
             .doc(userId)
             .set({
           'fcmToken': _fcmToken,
           'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          'fcmTokenUserType': userType.toLowerCase(),
         }, SetOptions(merge: true));
-
-        debugPrint('FCM: Token stored for user $userId in $collection');
       } else {
-        debugPrint('FCM: No token available to store - user may have denied notification permission');
       }
     } catch (e) {
-      debugPrint('FCM: Error storing token: $e - app will continue without notification storage');
     }
   }
 
   /// Remove FCM token from Firestore when user logs out
   Future<void> removeFCMToken(String userId, String userType) async {
     try {
-      // Determine the collection based on user type
-      String collection;
-      switch (userType.toLowerCase()) {
-        case 'student':
-          collection = 'students';
-          break;
-        case 'driver':
-          collection = 'drivers';
-          break;
-        case 'admin':
-          collection = 'admins';
-          break;
-        default:
-          debugPrint('FCM: Unknown user type: $userType');
-          return;
-      }
-
-      // Remove token from user's document
+      // Remove token from canonical user document.
       await FirebaseFirestore.instance
-          .collection(collection)
+          .collection('users')
           .doc(userId)
           .update({
         'fcmToken': FieldValue.delete(),
         'fcmTokenUpdatedAt': FieldValue.delete(),
+        'fcmTokenUserType': FieldValue.delete(),
       });
-
-      debugPrint('FCM: Token removed for user $userId');
     } catch (e) {
-      debugPrint('FCM: Error removing token: $e');
     }
   }
 
@@ -187,15 +136,9 @@ class FCMService {
   void setupForegroundMessageHandler() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       try {
-        debugPrint('FCM: Received foreground message');
-        debugPrint('FCM: Message data: ${message.data}');
-
         if (message.notification != null) {
-          debugPrint('FCM: Title: ${message.notification?.title}');
-          debugPrint('FCM: Body: ${message.notification?.body}');
         }
       } catch (e) {
-        debugPrint('FCM: Error handling foreground message: $e');
       }
     });
   }
@@ -203,10 +146,7 @@ class FCMService {
   /// Setup background message handler
   static Future<void> handleBackgroundMessage(RemoteMessage message) async {
     try {
-      debugPrint('FCM: Handling background message: ${message.messageId}');
-      debugPrint('FCM: Message data: ${message.data}');
     } catch (e) {
-      debugPrint('FCM: Error handling background message: $e');
       // Silently fail - don't crash the app
     }
   }
@@ -238,14 +178,11 @@ class FCMService {
 
       if (isAuthorized) {
         await _retrieveToken();
-        debugPrint('FCM: Notification permissions granted successfully');
       } else {
-        debugPrint('FCM: Notification permissions not granted - app will continue without notifications');
       }
 
       return isAuthorized;
     } catch (e) {
-      debugPrint('FCM: Error requesting permission: $e - app will continue without notifications');
       return false;
     }
   }
@@ -262,46 +199,52 @@ class FCMService {
     required DateTime travelDate,
   }) async {
     try {
-      debugPrint('FCM: Notifying students of trip start for bus $busNumber');
+      final dayStart = DateTime(travelDate.year, travelDate.month, travelDate.day);
+      final nextDay = dayStart.add(const Duration(days: 1));
+      final dateStr = '${travelDate.year}-${travelDate.month.toString().padLeft(2, '0')}-${travelDate.day.toString().padLeft(2, '0')}';
 
-      // Get all confirmed bookings for this specific trip
-      final bookingsSnapshot = await FirebaseFirestore.instance
-          .collection('bookings')
-          .where('busId', isEqualTo: busId)
-          .where('routeId', isEqualTo: routeId)
-          .where('selectedTimeSlot', isEqualTo: timeSlot)
-          .where('status', isEqualTo: 'confirmed')
-          .get();
+      QuerySnapshot<Map<String, dynamic>> bookingsSnapshot;
+      try {
+        // Optimized query path: constrain date in Firestore when selectedBookingDate is indexed.
+        bookingsSnapshot = await FirebaseFirestore.instance
+            .collection('bookings')
+            .where('busId', isEqualTo: busId)
+            .where('routeId', isEqualTo: routeId)
+            .where('selectedTimeSlot', isEqualTo: timeSlot)
+            .where('status', isEqualTo: 'confirmed')
+            .where('selectedBookingDate', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+            .where('selectedBookingDate', isLessThan: Timestamp.fromDate(nextDay))
+            .get();
+      } on FirebaseException {
+        // Backward-compatible fallback if required index/date field is unavailable.
+        bookingsSnapshot = await FirebaseFirestore.instance
+            .collection('bookings')
+            .where('busId', isEqualTo: busId)
+            .where('routeId', isEqualTo: routeId)
+            .where('selectedTimeSlot', isEqualTo: timeSlot)
+            .where('status', isEqualTo: 'confirmed')
+            .get();
+      }
 
       if (bookingsSnapshot.docs.isEmpty) {
-        debugPrint('FCM: No confirmed bookings found for this trip');
         return;
       }
 
-      // Filter bookings for the specific travel date
-      final dateStr = '${travelDate.year}-${travelDate.month.toString().padLeft(2, '0')}-${travelDate.day.toString().padLeft(2, '0')}';
       final relevantBookings = bookingsSnapshot.docs.where((doc) {
         final bookingData = doc.data();
         final selectedDate = bookingData['selectedBookingDate'];
         if (selectedDate == null) return false;
-        
+
         final bookingDate = (selectedDate as Timestamp).toDate();
         final bookingDateStr = '${bookingDate.year}-${bookingDate.month.toString().padLeft(2, '0')}-${bookingDate.day.toString().padLeft(2, '0')}';
         return bookingDateStr == dateStr;
       }).toList();
-
-      debugPrint('FCM: Found ${relevantBookings.length} students to notify');
-
-      int successCount = 0;
-      int failCount = 0;
 
       // Create notification records for each student
       for (var bookingDoc in relevantBookings) {
         try {
           final userId = bookingDoc.data()['userId'];
           if (userId == null || userId.isEmpty) {
-            debugPrint('FCM: Skipping booking with no userId');
-            failCount++;
             continue;
           }
 
@@ -309,15 +252,17 @@ class FCMService {
           String? fcmToken;
           try {
             final studentDoc = await FirebaseFirestore.instance
-                .collection('students')
+                .collection('users')
                 .doc(userId)
                 .get();
             
             if (studentDoc.exists) {
-              fcmToken = studentDoc.data()?['fcmToken'];
+              final studentData = studentDoc.data();
+              if (studentData?['userType'] == 'student') {
+                fcmToken = studentData?['fcmToken'];
+              }
             }
           } catch (e) {
-            debugPrint('FCM: Could not retrieve token for student $userId: $e');
           }
 
           // Create notification record
@@ -342,16 +287,10 @@ class FCMService {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-          successCount++;
         } catch (e) {
-          debugPrint('FCM: Error creating notification for booking ${bookingDoc.id}: $e');
-          failCount++;
         }
       }
-
-      debugPrint('FCM: Trip start notifications created - Success: $successCount, Failed: $failCount');
     } catch (e) {
-      debugPrint('FCM: Error notifying students of trip start: $e');
     }
   }
 }

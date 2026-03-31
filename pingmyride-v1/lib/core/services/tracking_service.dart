@@ -40,12 +40,8 @@ class TrackingService extends ChangeNotifier {
   /// Start tracking a specific bus
   Future<void> startTrackingBus(String busId) async {
     if (_busStreams.containsKey(busId)) {
-      debugPrint('TrackingService: Already tracking bus $busId');
       return;
     }
-
-    debugPrint('TrackingService: Starting to track bus $busId');
-
     _busStreams[busId] = _firestore
         .collection('buses')
         .doc(busId)
@@ -63,8 +59,6 @@ class TrackingService extends ChangeNotifier {
             'isActive': data['isActive'] ?? false,
           };
           notifyListeners();
-          debugPrint(
-              'TrackingService: Updated location for bus $busId - ${geoPoint.latitude}, ${geoPoint.longitude}');
         }
       }
     });
@@ -76,7 +70,6 @@ class TrackingService extends ChangeNotifier {
     _busStreams.remove(busId);
     _busLocations.remove(busId);
     _busData.remove(busId);
-    debugPrint('TrackingService: Stopped tracking bus $busId');
     notifyListeners();
   }
 
@@ -88,7 +81,6 @@ class TrackingService extends ChangeNotifier {
     _busStreams.clear();
     _busLocations.clear();
     _busData.clear();
-    debugPrint('TrackingService: Stopped all tracking');
     notifyListeners();
   }
 
@@ -99,9 +91,6 @@ class TrackingService extends ChangeNotifier {
     List<LatLng>? waypoints,
   }) async {
     try {
-      debugPrint(
-          'TrackingService: Fetching polyline from ${origin.latitude},${origin.longitude} to ${destination.latitude},${destination.longitude}');
-
       final result = await _polylinePoints.getRouteBetweenCoordinates(
         googleApiKey: _googleMapsApiKey,
         request: PolylineRequest(
@@ -118,17 +107,13 @@ class TrackingService extends ChangeNotifier {
         final polylineCoordinates = result.points
             .map((point) => LatLng(point.latitude, point.longitude))
             .toList();
-        
-        debugPrint('TrackingService: Polyline fetched with ${polylineCoordinates.length} points');
         return polylineCoordinates;
       } else if (result.errorMessage != null) {
-        debugPrint('TrackingService: Error fetching polyline - ${result.errorMessage}');
       }
 
       // Fallback: return straight line
       return [origin, destination];
     } catch (e) {
-      debugPrint('TrackingService: Exception fetching polyline - $e');
       return [origin, destination];
     }
   }
@@ -240,7 +225,6 @@ class TrackingService extends ChangeNotifier {
         'etaFormatted': 'N/A',
       };
     } catch (e) {
-      debugPrint('TrackingService: Error calculating ETA - $e');
       return {
         'distance': 0.0,
         'eta': Duration.zero,

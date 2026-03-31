@@ -40,7 +40,6 @@ class LocationManager extends ChangeNotifier {
       _locationServiceEnabled = await Geolocator.isLocationServiceEnabled();
       
       if (!_locationServiceEnabled) {
-        debugPrint('LocationManager: Location services are disabled');
         Fluttertoast.showToast(
           msg: 'Please enable location services',
           toastLength: Toast.LENGTH_LONG,
@@ -55,7 +54,6 @@ class LocationManager extends ChangeNotifier {
         _permission = await Geolocator.requestPermission();
         
         if (_permission == LocationPermission.denied) {
-          debugPrint('LocationManager: Location permissions are denied');
           Fluttertoast.showToast(
             msg: 'Location permissions are required',
             toastLength: Toast.LENGTH_LONG,
@@ -65,7 +63,6 @@ class LocationManager extends ChangeNotifier {
       }
       
       if (_permission == LocationPermission.deniedForever) {
-        debugPrint('LocationManager: Location permissions are permanently denied');
         Fluttertoast.showToast(
           msg: 'Please enable location permissions in app settings',
           toastLength: Toast.LENGTH_LONG,
@@ -75,11 +72,8 @@ class LocationManager extends ChangeNotifier {
       
       // Get initial position
       await _getCurrentLocation();
-      
-      debugPrint('LocationManager: Initialized successfully');
       return true;
     } catch (e) {
-      debugPrint('LocationManager: Error during initialization: $e');
       return false;
     }
   }
@@ -91,17 +85,9 @@ class LocationManager extends ChangeNotifier {
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       
-      debugPrint(
-        'LocationManager: Current position - '
-        'Lat: ${_currentPosition?.latitude}, '
-        'Lng: ${_currentPosition?.longitude}, '
-        'Accuracy: ${_currentPosition?.accuracy}m'
-      );
-      
       notifyListeners();
       return _currentPosition;
     } catch (e) {
-      debugPrint('LocationManager: Error getting current location: $e');
       return null;
     }
   }
@@ -109,13 +95,11 @@ class LocationManager extends ChangeNotifier {
   /// Start tracking location and updating to Firebase
   Future<void> startTracking({String? busId}) async {
     if (_isTracking) {
-      debugPrint('LocationManager: Already tracking');
       return;
     }
     
     final user = _auth.currentUser;
     if (user == null) {
-      debugPrint('LocationManager: User not authenticated');
       return;
     }
     
@@ -129,9 +113,6 @@ class LocationManager extends ChangeNotifier {
     
     _isTracking = true;
     notifyListeners();
-    
-    debugPrint('LocationManager: Starting location tracking for user ${user.uid}');
-    
     // Set up location settings
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -145,16 +126,8 @@ class LocationManager extends ChangeNotifier {
       (Position position) {
         _currentPosition = position;
         notifyListeners();
-        
-        debugPrint(
-          'LocationManager: Position updated - '
-          'Lat: ${position.latitude}, '
-          'Lng: ${position.longitude}, '
-          'Speed: ${position.speed}m/s'
-        );
       },
       onError: (error) {
-        debugPrint('LocationManager: Error in position stream: $error');
       },
     );
     
@@ -190,9 +163,6 @@ class LocationManager extends ChangeNotifier {
     _updateTimer = null;
     
     notifyListeners();
-    
-    debugPrint('LocationManager: Location tracking stopped');
-    
     Fluttertoast.showToast(
       msg: 'Location tracking stopped',
       toastLength: Toast.LENGTH_SHORT,
@@ -206,13 +176,11 @@ class LocationManager extends ChangeNotifier {
     }
     
     if (_currentPosition == null) {
-      debugPrint('LocationManager: No position available to update');
       return;
     }
     
     final user = _auth.currentUser;
     if (user == null) {
-      debugPrint('LocationManager: User not authenticated');
       return;
     }
     
@@ -242,8 +210,6 @@ class LocationManager extends ChangeNotifier {
           'speed': _currentPosition!.speed,
           'heading': _currentPosition!.heading,
         });
-        
-        debugPrint('LocationManager: Updated bus $busId location');
       }
       
       // Save to location_history collection for tracking
@@ -257,14 +223,7 @@ class LocationManager extends ChangeNotifier {
         ),
         'lastLocationUpdate': FieldValue.serverTimestamp(),
       });
-      
-      debugPrint(
-        'LocationManager: Updated location to Firebase - '
-        'Lat: ${_currentPosition!.latitude}, '
-        'Lng: ${_currentPosition!.longitude}'
-      );
     } catch (e) {
-      debugPrint('LocationManager: Error updating location to Firebase: $e');
     }
   }
   
@@ -342,7 +301,6 @@ class LocationManager extends ChangeNotifier {
         return data;
       }).toList();
     } catch (e) {
-      debugPrint('LocationManager: Error getting location history: $e');
       return [];
     }
   }

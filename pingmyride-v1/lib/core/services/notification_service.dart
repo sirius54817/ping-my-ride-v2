@@ -1,5 +1,4 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/foundation.dart';
 
 /// Service to handle local notifications for booking confirmations
 class NotificationService {
@@ -36,20 +35,15 @@ class NotificationService {
       );
 
       _isInitialized = true;
-      debugPrint('NotificationService: Initialized successfully');
     } catch (e) {
-      debugPrint('NotificationService: Error initializing: $e');
     }
   }
 
   /// Handle notification tap - safely logs tap without forced navigation
   void _onNotificationTapped(NotificationResponse response) {
     try {
-      debugPrint('NotificationService: Notification tapped: ${response.payload}');
-      debugPrint('NotificationService: Action ID: ${response.actionId}');
       // App opens normally - no forced navigation to maintain existing flow
     } catch (e) {
-      debugPrint('NotificationService: Error handling notification tap: $e');
       // Silently fail - don't crash the app
     }
   }
@@ -96,10 +90,7 @@ class NotificationService {
         notificationDetails,
         payload: 'booking_$busNumber',
       );
-
-      debugPrint('NotificationService: Booking confirmation sent for $routeName at $time');
     } catch (e) {
-      debugPrint('NotificationService: Error showing notification: $e');
       // Don't throw - notifications are not critical
     }
   }
@@ -147,10 +138,7 @@ class NotificationService {
         notificationDetails,
         payload: 'trip_start',
       );
-
-      debugPrint('NotificationService: Trip start notification sent');
     } catch (e) {
-      debugPrint('NotificationService: Error showing trip notification: $e');
       // Don't throw - notifications are not critical
     }
   }
@@ -159,9 +147,7 @@ class NotificationService {
   Future<void> cancelAll() async {
     try {
       await _notifications.cancelAll();
-      debugPrint('NotificationService: All notifications cancelled');
     } catch (e) {
-      debugPrint('NotificationService: Error cancelling notifications: $e');
     }
   }
 }

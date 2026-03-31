@@ -4,6 +4,7 @@ import '../../core/models/bus.dart';
 import '../../core/models/bus_route.dart';
 import '../../core/services/bus_service.dart';
 import '../../core/helpers/booking_flow_helper.dart';
+import '../../shared/widgets/app_loading_indicator.dart';
 
 class AllBusesPage extends StatefulWidget {
   const AllBusesPage({super.key});
@@ -37,36 +38,42 @@ class _AllBusesPageState extends State<AllBusesPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          Row(
-            children: [
-              Text(
-                'Active only',
-                style: const TextStyle(fontSize: 13, color: Colors.white70),
-              ),
-              Switch(
-                value: _showActiveOnly,
-                onChanged: (val) => setState(() => _showActiveOnly = val),
-                activeColor: Colors.white,
-                activeTrackColor: Colors.white38,
-                inactiveThumbColor: Colors.white54,
-                inactiveTrackColor: Colors.white24,
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Active only',
+                  style: const TextStyle(fontSize: 13, color: Colors.white70),
+                ),
+                Switch(
+                  value: _showActiveOnly,
+                  onChanged: (val) => setState(() => _showActiveOnly = val),
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: Colors.white38,
+                  inactiveThumbColor: Colors.white54,
+                  inactiveTrackColor: Colors.white24,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ],
+            ),
           ),
         ],
       ),
       body: Consumer<BusService>(
         builder: (context, busService, _) {
           if (busService.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppLoadingIndicator(message: 'Loading buses...');
           }
 
+          final routeById = {for (final route in busService.routes) route.id: route};
           var buses = busService.buses;
           if (_showActiveOnly) buses = buses.where((b) => b.isActive).toList();
           if (_searchQuery.isNotEmpty) {
             final q = _searchQuery.toLowerCase();
             buses = buses.where((b) {
-              final route = busService.getRouteById(b.routeId);
+              final route = routeById[b.routeId];
               return b.busNumber.toLowerCase().contains(q) ||
                   (route?.routeName.toLowerCase().contains(q) ?? false) ||
                   (route?.pickupLocation.toLowerCase().contains(q) ?? false) ||
@@ -143,11 +150,11 @@ class _AllBusesPageState extends State<AllBusesPage> {
                         onRefresh: () => busService.fetchBuses(),
                         child: ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          cacheExtent: 800,
                           itemCount: buses.length,
                           itemBuilder: (context, index) {
                             final bus = buses[index];
-                            final route =
-                                busService.getRouteById(bus.routeId);
+                            final route = routeById[bus.routeId];
                             return _buildBusListTile(
                                 context, bus, route, busService, primary);
                           },
@@ -325,76 +332,6 @@ class _AllBusesPageState extends State<AllBusesPage> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showBookingOptions(BuildContext context, Bus bus, BusRoute? route,
-      BusService busService, Color primary) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Book — ${bus.busNumber}',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 17),
-            ),
-            if (route != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                route.routeName,
-                style:
-                    TextStyle(fontSize: 13, color: Colors.grey[600]),
-              ),
-            ],
-            const SizedBox(height: 20),
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: primary.withValues(alpha: 0.12),
-                child: Icon(Icons.event_seat, color: primary, size: 20),
-              ),
-              title: const Text('Select Seat & Book',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: const Text('Choose your seat and travel date'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final timings = busService.getTimingsByRouteId(bus.routeId);
-                if (timings.isEmpty) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('No timings available for this bus')),
-                  );
-                  return;
-                }
-                // Navigate to seat selection with first available timing
-                if (!context.mounted) return;
-                Navigator.pushNamed(context, '/seat-selection',
-                    arguments: {'bus': bus, 'route': route});
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
         ),
       ),
     );

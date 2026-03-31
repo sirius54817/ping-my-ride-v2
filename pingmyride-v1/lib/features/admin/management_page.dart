@@ -340,7 +340,6 @@ class _AddBusDialogState extends State<AddBusDialog> {
         }
       });
     } catch (e) {
-      debugPrint('Error fetching drivers: $e');
       setState(() {
         _isLoadingDrivers = false;
       });

@@ -13,6 +13,7 @@ import '../profile/profile_page.dart';
 import '../driver/driver_home_page.dart';
 import '../driver/driver_route_page.dart';
 import '../auth/login_page.dart';
+import '../../shared/widgets/app_loading_indicator.dart';
 
 class MainNavigation extends StatefulWidget {
   final UserType userType;
@@ -144,16 +145,7 @@ class _MainNavigationState extends State<MainNavigation> {
     // Show loading screen while verifying user role
     if (_isVerifyingRole) {
       return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Verifying access...'),
-            ],
-          ),
-        ),
+        body: AppLoadingIndicator(message: 'Verifying access...'),
       );
     }
 
@@ -325,7 +317,7 @@ class _SchedulePageState extends State<SchedulePage> {
       body: Consumer<BusService>(
         builder: (context, busService, child) {
           if (busService.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppLoadingIndicator(message: 'Loading schedule...');
           }
 
           if (busService.busTimings.isEmpty) {
@@ -516,7 +508,7 @@ class StudentsPage extends StatelessWidget {
             .toList();
 
         if (busService.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingIndicator(message: 'Loading students...');
         }
 
         if (driverBuses.isEmpty) {

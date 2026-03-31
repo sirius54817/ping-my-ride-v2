@@ -42,7 +42,6 @@ class TripQRService extends ChangeNotifier {
 
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('TripQRService: Driver not authenticated');
         return null;
       }
 
@@ -68,7 +67,6 @@ class TripQRService extends ChangeNotifier {
         );
         
         if (tripDate.isAtSameMomentAs(targetDate) && tripQR.isActive) {
-          debugPrint('TripQRService: QR already exists for this trip');
           return tripQR;
         }
       }
@@ -99,9 +97,6 @@ class TripQRService extends ChangeNotifier {
 
       // Save to Firestore
       final docRef = await _firestore.collection('trip_qrs').add(tripQR.toMap());
-
-      debugPrint('TripQRService: Trip QR created with ID ${docRef.id}');
-
       // Notify students that the trip has started
       await FCMService().notifyStudentsOfTripStart(
         busId: busId,
@@ -116,7 +111,6 @@ class TripQRService extends ChangeNotifier {
       await fetchDriverTripQRs();
       return tripQR.copyWith(id: docRef.id);
     } catch (e) {
-      debugPrint('TripQRService: Error creating trip QR - $e');
       return null;
     } finally {
       _isLoading = false;
@@ -129,7 +123,6 @@ class TripQRService extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        debugPrint('TripQRService: Driver not authenticated');
         _driverTripQRs = [];
         notifyListeners();
         return;
@@ -149,10 +142,7 @@ class TripQRService extends ChangeNotifier {
 
       // Sort by travel date (most recent first)
       _driverTripQRs.sort((a, b) => b.travelDate.compareTo(a.travelDate));
-
-      debugPrint('TripQRService: Fetched ${_driverTripQRs.length} trip QRs');
     } catch (e) {
-      debugPrint('TripQRService: Error fetching trip QRs - $e');
       _driverTripQRs = [];
     } finally {
       _isLoading = false;
@@ -237,16 +227,12 @@ class TripQRService extends ChangeNotifier {
         'status': 'active',
         'rideStartedAt': FieldValue.serverTimestamp(),
       });
-
-      debugPrint('TripQRService: Student ${user.uid} scanned trip QR ${tripQRDoc.id}');
-
       return {
         'success': true,
         'message': 'Ride started successfully!',
         'tripQR': tripQR,
       };
     } catch (e) {
-      debugPrint('TripQRService: Error scanning trip QR - $e');
       return {
         'success': false,
         'message': 'Error scanning QR code: $e',
@@ -262,10 +248,8 @@ class TripQRService extends ChangeNotifier {
       });
 
       await fetchDriverTripQRs();
-      debugPrint('TripQRService: Trip QR $tripQRId deactivated');
       return true;
     } catch (e) {
-      debugPrint('TripQRService: Error deactivating trip QR - $e');
       return false;
     }
   }
@@ -279,7 +263,6 @@ class TripQRService extends ChangeNotifier {
       }
       return null;
     } catch (e) {
-      debugPrint('TripQRService: Error fetching trip QR - $e');
       return null;
     }
   }
